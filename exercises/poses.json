@@ -1,0 +1,67 @@
+{
+  "exercises": [
+    {
+      "id": "tree-pose",
+      "name": "Tree Pose",
+      "description": "Stand on one leg with the other foot placed on the inner thigh",
+      "difficulty": "beginner",
+      "duration": 10,
+      "image": "/static/images/tree-pose.svg",
+      "instructions": [
+        "Stand straight with feet together",
+        "Shift weight to your right foot",
+        "Place left foot on right inner thigh",
+        "Bring hands together at chest or raise above head",
+        "Hold the position steady"
+      ],
+      "keypoints": {
+        "standing_leg_angle": {"min": 170, "max": 180},
+        "bent_knee_angle": {"min": 80, "max": 100},
+        "arms_raised": true,
+        "balance_tolerance": 0.15
+      }
+    },
+    {
+      "id": "warrior-two",
+      "name": "Warrior II Pose",
+      "description": "A standing pose with arms extended and legs in a lunge position",
+      "difficulty": "beginner",
+      "duration": 10,
+      "image": "/static/images/warrior-two.svg",
+      "instructions": [
+        "Stand with feet wide apart",
+        "Turn right foot 90 degrees out",
+        "Bend right knee to 90 degrees",
+        "Extend arms parallel to the ground",
+        "Gaze over your right hand"
+      ],
+      "keypoints": {
+        "front_knee_angle": {"min": 80, "max": 100},
+        "back_leg_angle": {"min": 170, "max": 180},
+        "arms_horizontal": true,
+        "torso_upright": true
+      }
+    },
+    {
+      "id": "plank",
+      "name": "Plank Pose",
+      "description": "Hold your body in a straight line parallel to the ground",
+      "difficulty": "beginner",
+      "duration": 10,
+      "image": "/static/images/plank.svg",
+      "instructions": [
+        "Start in a push-up position",
+        "Keep body in a straight line",
+        "Engage your core",
+        "Keep neck neutral",
+        "Hold the position"
+      ],
+      "keypoints": {
+        "body_alignment": {"min": 170, "max": 180},
+        "elbow_angle": {"min": 170, "max": 180},
+        "hip_alignment": true,
+        "shoulder_stability": true
+      }
+    }
+  ]
+}

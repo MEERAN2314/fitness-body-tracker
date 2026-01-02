@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Exercise Body Tracker{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1 class="hero-title">Perfect Your Form</h1>
+        <p class="hero-subtitle">AI-powered exercise tracking to prevent injuries and improve your workout</p>
+    </div>
+</div>
+
+<div class="container">
+    <section class="exercises-section">
+        <h2 class="section-title">Choose Your Exercise</h2>
+        
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        
+        <div class="exercises-grid">
+            {% for exercise in exercises %}
+            <div class="exercise-card">
+                <div class="exercise-icon">🧘</div>
+                <h3 class="exercise-name">{{ exercise.name }}</h3>
+                <p class="exercise-description">{{ exercise.description }}</p>
+                <div class="exercise-meta">
+                    <span class="difficulty difficulty-{{ exercise.difficulty }}">{{ exercise.difficulty }}</span>
+                    <span class="duration">{{ exercise.duration }}s hold</span>
+                </div>
+                <a href="/exercise/{{ exercise.id }}" class="btn btn-primary">Start Exercise</a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="features-section">
+        <h2 class="section-title">How It Works</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📹</div>
+                <h3>Real-time Tracking</h3>
+                <p>Your camera tracks your body movements in real-time</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Form Correction</h3>
+                <p>Get instant feedback on your exercise form</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✅</div>
+                <h3>Injury Prevention</h3>
+                <p>Ensure proper form to avoid workout injuries</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
