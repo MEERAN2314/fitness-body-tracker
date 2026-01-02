@@ -29,9 +29,18 @@
     
     .exercise-layout {
         display: grid;
-        grid-template-columns: 1fr 300px;
+        grid-template-columns: 1fr 350px;
         gap: 2rem;
         margin-top: 2rem;
+        align-items: start;
+    }
+    
+    .camera-section {
+        position: relative;
+    }
+    
+    .mobile-compact-info {
+        display: none;
     }
     
     .camera-section {
@@ -43,7 +52,10 @@
         background: #000;
         border-radius: 12px;
         overflow: hidden;
-        aspect-ratio: 4/3;
+        aspect-ratio: 1/1; /* Square ratio for better mobile view */
+        max-height: 80vh;
+        max-width: 600px;
+        margin: 0 auto;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     }
     
@@ -189,6 +201,289 @@
     @media (max-width: 968px) {
         .exercise-layout {
             grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .video-container {
+            max-height: 50vh;
+            max-width: 100%;
+        }
+        
+        .status-panel {
+            display: none; /* Hide full panel on mobile */
+        }
+        
+        .mobile-compact-info {
+            display: block;
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mobile-stats {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+        
+        .mobile-stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .mobile-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .mobile-stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .mobile-feedback {
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            background: #f3f4f6;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .mobile-instructions {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .mobile-instructions h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark-blue);
+        }
+        
+        .mobile-instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .mobile-instructions li {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.6rem;
+            margin-bottom: 0.3rem;
+            background: #f9fafb;
+            border-radius: 4px;
+            border-left: 2px solid #3b82f6;
+        }
+        
+        .controls {
+            margin-top: 1rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .exercise-container {
+            padding: 0 0.5rem;
+            margin: 1rem auto;
+        }
+        
+        .exercise-header {
+            margin-bottom: 1rem;
+        }
+        
+        .exercise-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .exercise-header p {
+            font-size: 0.9rem;
+        }
+        
+        .video-container {
+            max-height: 45vh;
+            border-radius: 8px;
+        }
+        
+        .mobile-compact-info {
+            padding: 0.85rem;
+        }
+        
+        .mobile-stat-value {
+            font-size: 1.75rem;
+        }
+        
+        .mobile-stat-label {
+            font-size: 0.7rem;
+        }
+        
+        .mobile-feedback {
+            font-size: 0.85rem;
+            padding: 0.65rem;
+        }
+        
+        .mobile-instructions {
+            max-height: 100px;
+        }
+        
+        .mobile-instructions h4 {
+            font-size: 0.85rem;
+        }
+        
+        .mobile-instructions li {
+            font-size: 0.8rem;
+            padding: 0.35rem 0.5rem;
+        }
+        
+        .btn-lg {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.95rem;
+        }
+        
+        .completion-message {
+            padding: 1.25rem;
+        }
+        
+        .completion-message h2 {
+            font-size: 1.35rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .exercise-container {
+            margin: 0.5rem auto;
+        }
+        
+        .exercise-header h1 {
+            font-size: 1.35rem;
+        }
+        
+        .exercise-header p {
+            font-size: 0.85rem;
+        }
+        
+        .back-link {
+            font-size: 0.85rem;
+        }
+        
+        .video-container {
+            max-height: 40vh;
+            border-radius: 6px;
+        }
+        
+        .mobile-compact-info {
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+        
+        .mobile-stats {
+            gap: 0.5rem;
+        }
+        
+        .mobile-stat-value {
+            font-size: 1.5rem;
+        }
+        
+        .mobile-stat-label {
+            font-size: 0.65rem;
+        }
+        
+        .mobile-feedback {
+            font-size: 0.8rem;
+            padding: 0.6rem;
+        }
+        
+        .mobile-instructions {
+            max-height: 90px;
+        }
+        
+        .mobile-instructions h4 {
+            font-size: 0.8rem;
+            margin-bottom: 0.4rem;
+        }
+        
+        .mobile-instructions li {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.45rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .btn-lg {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .completion-message {
+            padding: 1rem;
+        }
+        
+        .completion-message h2 {
+            font-size: 1.25rem;
+        }
+        
+        .completion-message p {
+            font-size: 0.85rem;
+        }
+        
+        .completion-message .btn {
+            width: 100%;
+            margin: 0.4rem 0;
+        }
+    }
+    
+    /* Landscape mobile optimization */
+    @media (max-width: 968px) and (orientation: landscape) {
+        .exercise-layout {
+            grid-template-columns: 1fr 280px;
+            gap: 1rem;
+        }
+        
+        .video-container {
+            max-height: 80vh;
+        }
+        
+        .mobile-compact-info {
+            display: none;
+        }
+        
+        .status-panel {
+            display: block;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        
+        .status-indicator {
+            padding: 1rem;
+        }
+        
+        .accuracy-score {
+            font-size: 2rem;
+        }
+        
+        .countdown-display {
+            font-size: 2.5rem;
+        }
+        
+        .feedback-text {
+            font-size: 0.85rem;
+            padding: 0.75rem;
+        }
+        
+        .instructions-list li {
+            font-size: 0.8rem;
+            padding: 0.5rem;
         }
     }
 </style>
@@ -218,9 +513,34 @@
                 <button id="stopBtn" class="btn btn-secondary btn-lg" style="display: none;">Stop</button>
             </div>
             
+            <!-- Mobile Compact Info -->
+            <div class="mobile-compact-info">
+                <div class="mobile-stats">
+                    <div class="mobile-stat-item">
+                        <div class="mobile-stat-value" id="mobileAccuracy">0%</div>
+                        <div class="mobile-stat-label">Accuracy</div>
+                    </div>
+                    <div class="mobile-stat-item" id="mobileCountdownContainer" style="display: none;">
+                        <div class="mobile-stat-value" id="mobileCountdown">5</div>
+                        <div class="mobile-stat-label">Hold Time</div>
+                    </div>
+                </div>
+                <div class="mobile-feedback" id="mobileFeedback">
+                    Position yourself in front of the camera and click "Start Camera"
+                </div>
+                <div class="mobile-instructions">
+                    <h4>Instructions</h4>
+                    <ul>
+                        {% for instruction in exercise.instructions %}
+                        <li>{{ instruction }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
             <div class="completion-message" id="completionMessage">
                 <h2>🎉 Exercise Completed!</h2>
-                <p>Great job! You held the correct pose for 10 seconds.</p>
+                <p>Great job! You held the correct pose for 5 seconds.</p>
                 <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
                 <a href="/" class="btn btn-secondary">Choose Another Exercise</a>
             </div>
@@ -251,7 +571,7 @@
 </div>
 
 <audio id="beepSound" preload="auto">
-    <source src="/static/sounds/beep.mp3" type="audio/mpeg">
+    <source src="/static/sounds/beep.wav" type="audio/wav">
 </audio>
 
 <script src="/static/js/exercise.js"></script>

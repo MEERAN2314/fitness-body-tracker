@@ -1,13 +1,15 @@
 let video, canvas, ctx;
 let ws;
 let isTracking = false;
-let countdown = 10;
+let countdown = 5;
 let countdownInterval;
 let isInCorrectPose = false;
 let processingFrame = false;
 let stream = null;
 let lastLandmarks = null; // For smoothing
-let smoothingFactor = 0.5; // Smoothing between frames (0-1, higher = smoother but more lag)
+let smoothingFactor = 0.5; // Reduced for 60fps (less lag, still smooth)
+let landmarkHistory = []; // Store multiple frames for better smoothing
+let maxHistoryFrames = 3; // Reduced for 60fps (less latency)
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -53,13 +55,14 @@ async function startCamera() {
         feedback.textContent = '📹 Starting camera...';
         startBtn.disabled = true;
         
-        // Request camera with optimal settings
+        // Request camera with square aspect ratio for better mobile view
         const constraints = {
             video: {
-                width: { ideal: 1280, max: 1920 },
-                height: { ideal: 720, max: 1080 },
+                width: { ideal: 1080, max: 1920 },
+                height: { ideal: 1080, max: 1920 },
                 facingMode: 'user',
-                frameRate: { ideal: 30, max: 60 }
+                frameRate: { ideal: 60, max: 60 },
+                aspectRatio: { ideal: 1 } // Square ratio
             },
             audio: false
         };
@@ -116,6 +119,7 @@ function stopCamera() {
     isTracking = false;
     processingFrame = false;
     lastLandmarks = null; // Reset smoothing
+    landmarkHistory = []; // Clear history
     
     // Stop video stream
     if (stream) {
@@ -232,8 +236,8 @@ function processFrame() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         ctx.restore();
         
-        // Capture frame as base64 (reduced quality for performance)
-        const imageData = canvas.toDataURL('image/jpeg', 0.7);
+        // Capture frame as base64 (optimized quality for 60fps)
+        const imageData = canvas.toDataURL('image/jpeg', 0.75);
         
         // Send to backend
         processingFrame = true;
@@ -248,10 +252,10 @@ function processFrame() {
         processingFrame = false;
     }
     
-    // Schedule next frame (30 FPS for smooth performance)
+    // Schedule next frame (60 FPS for ultra-smooth performance)
     setTimeout(() => {
         requestAnimationFrame(processFrame);
-    }, 33);
+    }, 16);
 }
 
 function handlePoseData(data) {
@@ -259,21 +263,27 @@ function handlePoseData(data) {
         feedback.textContent = data.message || 'No pose detected';
         updateStatusIndicator('red', 0);
         resetCountdown();
+        
+        // Update mobile UI
+        updateMobileUI(0, data.message || 'No pose detected', 'red');
         return;
     }
     
     const { landmarks, accuracy, feedback: feedbackText, color } = data;
     
-    // Update UI
+    // Update desktop UI
     accuracyScore.textContent = `${Math.round(accuracy)}%`;
     feedback.textContent = feedbackText;
     updateStatusIndicator(color, accuracy);
     
+    // Update mobile UI
+    updateMobileUI(accuracy, feedbackText, color);
+    
     // Draw skeleton
     drawSkeleton(landmarks, color);
     
-    // Handle countdown
-    if (accuracy >= 90 && color === 'green') {
+    // Handle countdown - adjusted threshold for better detection
+    if (accuracy >= 85 && color === 'green') {
         if (!isInCorrectPose) {
             isInCorrectPose = true;
             startCountdown();
@@ -286,6 +296,21 @@ function handlePoseData(data) {
     }
 }
 
+function updateMobileUI(accuracy, feedbackText, color) {
+    const mobileAccuracy = document.getElementById('mobileAccuracy');
+    const mobileFeedback = document.getElementById('mobileFeedback');
+    
+    if (mobileAccuracy) {
+        mobileAccuracy.textContent = `${Math.round(accuracy)}%`;
+        mobileAccuracy.style.color = color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#ef4444';
+    }
+    
+    if (mobileFeedback) {
+        mobileFeedback.textContent = feedbackText;
+        mobileFeedback.style.borderLeft = `3px solid ${color === 'green' ? '#10b981' : color === 'yellow' ? '#f59e0b' : '#ef4444'}`;
+    }
+}
+
 function updateStatusIndicator(color, accuracy) {
     statusIndicator.className = `status-indicator ${color}`;
 }
@@ -293,83 +318,176 @@ function updateStatusIndicator(color, accuracy) {
 function drawSkeleton(landmarks, color) {
     if (!landmarks || landmarks.length === 0) return;
     
-    // Apply smoothing to landmarks
-    if (lastLandmarks && lastLandmarks.length === landmarks.length) {
+    // Advanced multi-frame smoothing with weighted average
+    landmarkHistory.push(landmarks);
+    if (landmarkHistory.length > maxHistoryFrames) {
+        landmarkHistory.shift();
+    }
+    
+    // Weighted average - recent frames have more weight
+    if (landmarkHistory.length > 1) {
         landmarks = landmarks.map((landmark, i) => {
+            let weightedX = 0, weightedY = 0, totalWeight = 0;
+            
+            landmarkHistory.forEach((frame, frameIndex) => {
+                // More recent frames get higher weight
+                const weight = (frameIndex + 1) / landmarkHistory.length;
+                weightedX += frame[i][0] * weight;
+                weightedY += frame[i][1] * weight;
+                totalWeight += weight;
+            });
+            
             return [
-                lastLandmarks[i][0] * smoothingFactor + landmark[0] * (1 - smoothingFactor),
-                lastLandmarks[i][1] * smoothingFactor + landmark[1] * (1 - smoothingFactor),
+                weightedX / totalWeight,
+                weightedY / totalWeight,
                 landmark[2],
                 landmark[3]
             ];
         });
     }
+    
+    // Additional exponential smoothing with last frame
+    if (lastLandmarks && lastLandmarks.length === landmarks.length) {
+        landmarks = landmarks.map((landmark, i) => {
+            // Only smooth if visibility is good
+            if (landmark[3] > 0.5 && lastLandmarks[i][3] > 0.5) {
+                return [
+                    lastLandmarks[i][0] * smoothingFactor + landmark[0] * (1 - smoothingFactor),
+                    lastLandmarks[i][1] * smoothingFactor + landmark[1] * (1 - smoothingFactor),
+                    landmark[2],
+                    landmark[3]
+                ];
+            }
+            return landmark;
+        });
+    }
     lastLandmarks = landmarks;
     
+    // Clear and redraw with anti-aliasing
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Enable image smoothing for better quality
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Set color based on pose accuracy
-    let drawColor;
+    // Set color based on pose accuracy with smooth transitions
+    let drawColor, glowColor;
     if (color === 'green') {
         drawColor = '#10b981';
+        glowColor = 'rgba(16, 185, 129, 0.5)';
     } else if (color === 'yellow') {
         drawColor = '#f59e0b';
+        glowColor = 'rgba(245, 158, 11, 0.5)';
     } else {
         drawColor = '#ef4444';
+        glowColor = 'rgba(239, 68, 68, 0.5)';
     }
     
-    // Draw connections with thicker lines
+    // Define all body connections for complete skeleton
     const connections = [
-        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
-        [11, 23], [12, 24], [23, 24], // Torso
-        [23, 25], [25, 27], [24, 26], [26, 28], // Legs
-        [0, 1], [1, 2], [2, 3], [3, 7], [0, 4], [4, 5], [5, 6], [6, 8] // Face
+        // Torso
+        [11, 12], [11, 23], [12, 24], [23, 24],
+        // Left arm
+        [11, 13], [13, 15],
+        // Right arm
+        [12, 14], [14, 16],
+        // Left leg
+        [23, 25], [25, 27], [27, 29], [27, 31],
+        // Right leg
+        [24, 26], [26, 28], [28, 30], [28, 32],
+        // Face/head (minimal)
+        [0, 1], [1, 2], [2, 3], [3, 7],
+        [0, 4], [4, 5], [5, 6], [6, 8]
     ];
     
-    // Draw thicker lines with glow effect
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = drawColor;
-    
-    // Add shadow/glow effect
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = drawColor;
-    
-    connections.forEach(([start, end]) => {
-        if (landmarks[start] && landmarks[end]) {
-            const startX = landmarks[start][0] * canvas.width;
-            const startY = landmarks[start][1] * canvas.height;
-            const endX = landmarks[end][0] * canvas.width;
-            const endY = landmarks[end][1] * canvas.height;
-            
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-        }
+    // Filter connections based on visibility
+    const visibleConnections = connections.filter(([start, end]) => {
+        return landmarks[start] && landmarks[end] && 
+               landmarks[start][3] > 0.6 && landmarks[end][3] > 0.6;
     });
     
-    // Draw joints with larger circles
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = drawColor;
+    // Draw outer glow layer for depth
+    ctx.lineWidth = 12;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = glowColor;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = drawColor;
     
-    landmarks.forEach((landmark) => {
-        const x = landmark[0] * canvas.width;
-        const y = landmark[1] * canvas.height;
+    visibleConnections.forEach(([start, end]) => {
+        const startX = landmarks[start][0] * canvas.width;
+        const startY = landmarks[start][1] * canvas.height;
+        const endX = landmarks[end][0] * canvas.width;
+        const endY = landmarks[end][1] * canvas.height;
         
         ctx.beginPath();
-        ctx.arc(x, y, 8, 0, 2 * Math.PI);
-        ctx.fill();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+    });
+    
+    // Draw main skeleton lines
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = drawColor;
+    ctx.shadowBlur = 12;
+    
+    visibleConnections.forEach(([start, end]) => {
+        const startX = landmarks[start][0] * canvas.width;
+        const startY = landmarks[start][1] * canvas.height;
+        const endX = landmarks[end][0] * canvas.width;
+        const endY = landmarks[end][1] * canvas.height;
         
-        // Add white center for better visibility
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, 2 * Math.PI);
-        ctx.fill();
-        
-        ctx.fillStyle = drawColor;
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+    });
+    
+    // Draw joints with enhanced visibility
+    ctx.shadowBlur = 15;
+    
+    // Key joints for exercise tracking (larger and more prominent)
+    const keyJoints = [
+        0,  // Nose
+        11, 12, // Shoulders
+        13, 14, // Elbows
+        15, 16, // Wrists
+        23, 24, // Hips
+        25, 26, // Knees
+        27, 28, // Ankles
+        29, 30, 31, 32 // Feet
+    ];
+    
+    keyJoints.forEach(index => {
+        if (landmarks[index] && landmarks[index][3] > 0.6) {
+            const x = landmarks[index][0] * canvas.width;
+            const y = landmarks[index][1] * canvas.height;
+            const visibility = landmarks[index][3];
+            
+            // Size based on visibility
+            const baseSize = 10;
+            const size = baseSize * visibility;
+            
+            // Outer glow circle
+            ctx.fillStyle = glowColor;
+            ctx.beginPath();
+            ctx.arc(x, y, size + 4, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Main joint circle
+            ctx.fillStyle = drawColor;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // White center for contrast
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
     });
     
     // Reset shadow
@@ -381,9 +499,20 @@ function startCountdown() {
     countdownDisplay.textContent = countdown;
     countdownContainer.style.display = 'block';
     
+    // Show mobile countdown
+    const mobileCountdownContainer = document.getElementById('mobileCountdownContainer');
+    const mobileCountdown = document.getElementById('mobileCountdown');
+    if (mobileCountdownContainer) {
+        mobileCountdownContainer.style.display = 'block';
+        mobileCountdown.textContent = countdown;
+    }
+    
     countdownInterval = setInterval(() => {
         countdown--;
         countdownDisplay.textContent = countdown;
+        if (mobileCountdown) {
+            mobileCountdown.textContent = countdown;
+        }
         
         if (countdown <= 0) {
             clearInterval(countdownInterval);
@@ -399,6 +528,14 @@ function resetCountdown() {
     countdown = exerciseDuration;
     countdownDisplay.textContent = countdown;
     countdownContainer.style.display = 'none';
+    
+    // Hide mobile countdown
+    const mobileCountdownContainer = document.getElementById('mobileCountdownContainer');
+    const mobileCountdown = document.getElementById('mobileCountdown');
+    if (mobileCountdownContainer) {
+        mobileCountdownContainer.style.display = 'none';
+        mobileCountdown.textContent = countdown;
+    }
 }
 
 function exerciseCompleted() {

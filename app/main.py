@@ -43,26 +43,43 @@ async def exercise_page(request: Request, exercise_id: str):
 
 @app.websocket("/ws/pose")
 async def websocket_pose(websocket: WebSocket):
+    from app.services.pose_detector import PoseDetector
+    from starlette.websockets import WebSocketDisconnect
+    
     await websocket.accept()
+    detector = PoseDetector()
     
     try:
-        from app.services.pose_detector import PoseDetector
-        detector = PoseDetector()
-        
         while True:
-            data = await websocket.receive_json()
-            
-            if data.get("type") == "frame":
-                # Process the frame data
-                result = detector.process_pose(data)
-                await websocket.send_json(result)
+            try:
+                data = await websocket.receive_json()
+                
+                if data.get("type") == "frame":
+                    # Process the frame data
+                    result = detector.process_pose(data)
+                    await websocket.send_json(result)
+                    
+            except WebSocketDisconnect:
+                print("Client disconnected normally")
+                break
+            except Exception as e:
+                print(f"Error processing frame: {e}")
+                # Send error to client but continue
+                try:
+                    await websocket.send_json({
+                        "success": False,
+                        "message": "Processing error"
+                    })
+                except:
+                    break
                 
     except Exception as e:
         print(f"WebSocket error: {e}")
-        import traceback
-        traceback.print_exc()
     finally:
-        await websocket.close()
+        try:
+            await websocket.close()
+        except:
+            pass  # Already closed
 
 if __name__ == "__main__":
     import uvicorn

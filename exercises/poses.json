@@ -5,7 +5,7 @@
       "name": "Tree Pose",
       "description": "Stand on one leg with the other foot placed on the inner thigh",
       "difficulty": "beginner",
-      "duration": 10,
+      "duration": 5,
       "image": "/static/images/tree-pose.svg",
       "instructions": [
         "Stand straight with feet together",
@@ -26,7 +26,7 @@
       "name": "Warrior II Pose",
       "description": "A standing pose with arms extended and legs in a lunge position",
       "difficulty": "beginner",
-      "duration": 10,
+      "duration": 5,
       "image": "/static/images/warrior-two.svg",
       "instructions": [
         "Stand with feet wide apart",
@@ -47,7 +47,7 @@
       "name": "Plank Pose",
       "description": "Hold your body in a straight line parallel to the ground",
       "difficulty": "beginner",
-      "duration": 10,
+      "duration": 5,
       "image": "/static/images/plank.svg",
       "instructions": [
         "Start in a push-up position",

@@ -2,6 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 :root {
@@ -21,6 +22,9 @@ body {
     background-attachment: fixed;
     color: var(--gray-900);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 .container {
@@ -242,6 +246,8 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     font-size: 1rem;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .btn-primary {
@@ -252,6 +258,10 @@ body {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-secondary {
@@ -290,7 +300,39 @@ body {
 }
 
 /* Responsive */
+@media (max-width: 968px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .section-title {
+        font-size: 1.75rem;
+    }
+    
+    .exercises-grid,
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .exercise-card {
+        padding: 1.5rem;
+    }
+    
+    .nav-links {
+        gap: 1rem;
+    }
+}
+
 @media (max-width: 768px) {
+    .hero {
+        padding: 3rem 0;
+    }
+    
     .hero-title {
         font-size: 2rem;
     }
@@ -299,8 +341,88 @@ body {
         font-size: 1rem;
     }
     
-    .exercises-grid,
-    .features-grid {
-        grid-template-columns: 1fr;
+    .section-title {
+        font-size: 1.5rem;
+    }
+    
+    .logo {
+        font-size: 1.1rem;
+    }
+    
+    .logo-icon {
+        font-size: 1.3rem;
+    }
+    
+    .nav-links {
+        gap: 0.75rem;
+    }
+    
+    .nav-link {
+        font-size: 0.9rem;
+    }
+    
+    .container {
+        padding: 0 0.75rem;
+    }
+    
+    .exercises-section,
+    .features-section {
+        margin: 2rem 0;
+    }
+    
+    .btn {
+        padding: 0.65rem 1.25rem;
+        font-size: 0.95rem;
+    }
+    
+    .btn-lg {
+        padding: 0.85rem 1.75rem;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        padding: 2rem 0;
+    }
+    
+    .hero-title {
+        font-size: 1.75rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 0.95rem;
+    }
+    
+    .section-title {
+        font-size: 1.35rem;
+    }
+    
+    .exercise-icon {
+        font-size: 3rem;
+    }
+    
+    .exercise-name {
+        font-size: 1.25rem;
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+    }
+    
+    .navbar {
+        padding: 0.75rem 0;
+    }
+    
+    .logo {
+        font-size: 1rem;
+    }
+    
+    .nav-links {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        font-size: 0.85rem;
     }
 }

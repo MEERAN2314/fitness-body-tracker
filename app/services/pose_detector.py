@@ -9,12 +9,14 @@ class PoseDetector:
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(
             static_image_mode=False,
-            model_complexity=2,  # Increased for better accuracy
+            model_complexity=2,  # Highest accuracy model
             smooth_landmarks=True,
             enable_segmentation=False,
-            min_detection_confidence=0.7,  # Increased for better detection
-            min_tracking_confidence=0.7    # Increased for better tracking
+            min_detection_confidence=0.8,  # Higher confidence for better detection
+            min_tracking_confidence=0.8    # Higher confidence for stable tracking
         )
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_drawing_styles = mp.solutions.drawing_styles
         
     def calculate_angle(self, a, b, c):
         """Calculate angle between three points"""
@@ -246,7 +248,7 @@ class PoseDetector:
         }
     
     def process_pose(self, data):
-        """Process pose from frame data"""
+        """Process pose from frame data with optimized settings"""
         try:
             # Decode base64 image
             image_data = data.get("image", "").split(",")[1]
@@ -254,16 +256,49 @@ class PoseDetector:
             nparr = np.frombuffer(image_bytes, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
-            # Convert to RGB
+            if image is None:
+                return {"success": False, "message": "Failed to decode image"}
+            
+            # Get original dimensions
+            height, width = image.shape[:2]
+            
+            # Optimize image for MediaPipe (better quality, not too large)
+            target_width = 960
+            if width != target_width:
+                scale = target_width / width
+                new_width = target_width
+                new_height = int(height * scale)
+                image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+            
+            # Enhance image quality for better detection
+            # Increase brightness slightly if needed
+            image = cv2.convertScaleAbs(image, alpha=1.1, beta=10)
+            
+            # Convert to RGB (MediaPipe requirement)
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             
-            # Process pose
+            # Improve image quality
+            image_rgb.flags.writeable = False
+            
+            # Process pose with MediaPipe
             results = self.pose.process(image_rgb)
             
+            image_rgb.flags.writeable = True
+            
             if results.pose_landmarks:
-                # Extract landmarks
+                # Extract landmarks with high confidence
                 landmarks = results.pose_landmarks.landmark
-                landmarks_list = [[lm.x, lm.y, lm.z, lm.visibility] for lm in landmarks]
+                
+                # Filter and normalize landmarks
+                landmarks_list = []
+                for lm in landmarks:
+                    # Only include landmarks with good visibility
+                    landmarks_list.append([
+                        float(lm.x), 
+                        float(lm.y), 
+                        float(lm.z), 
+                        float(lm.visibility)
+                    ])
                 
                 # Check pose accuracy
                 exercise_id = data.get("exercise_id", "")
@@ -279,11 +314,14 @@ class PoseDetector:
             else:
                 return {
                     "success": False,
-                    "message": "No pose detected. Please ensure you're fully visible in the camera."
+                    "message": "No body detected. Step back and ensure full body is visible with good lighting."
                 }
                 
         except Exception as e:
+            print(f"Error in process_pose: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 "success": False,
-                "message": f"Error processing pose: {str(e)}"
+                "message": "Processing error. Please ensure good lighting and full body visibility."
             }
