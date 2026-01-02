@@ -283,7 +283,7 @@ function handlePoseData(data) {
     drawSkeleton(landmarks, color);
     
     // Handle countdown - adjusted threshold for better detection
-    if (accuracy >= 85 && color === 'green') {
+    if (accuracy >= 80 && color === 'green') {
         if (!isInCorrectPose) {
             isInCorrectPose = true;
             startCountdown();
