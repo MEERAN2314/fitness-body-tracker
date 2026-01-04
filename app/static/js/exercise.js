@@ -10,9 +10,12 @@ let lastLandmarks = null; // For smoothing
 let smoothingFactor = 0.5; // Reduced for 60fps (less lag, still smooth)
 let landmarkHistory = []; // Store multiple frames for better smoothing
 let maxHistoryFrames = 3; // Reduced for 60fps (less latency)
+let currentFacingMode = 'user'; // 'user' for front camera, 'environment' for back camera
+let availableCameras = [];
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const switchCameraBtn = document.getElementById('switchCameraBtn');
 const statusIndicator = document.getElementById('statusIndicator');
 const accuracyScore = document.getElementById('accuracyScore');
 const feedback = document.getElementById('feedback');
@@ -29,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     startBtn.addEventListener('click', startCamera);
     stopBtn.addEventListener('click', stopCamera);
+    switchCameraBtn.addEventListener('click', switchCamera);
     
     // Check camera availability
     checkCameraAvailability();
@@ -38,12 +42,16 @@ async function checkCameraAvailability() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        availableCameras = videoDevices;
         
         if (videoDevices.length === 0) {
             feedback.textContent = '⚠️ No camera detected. Please connect a camera.';
             startBtn.disabled = true;
         } else {
             console.log(`Found ${videoDevices.length} camera(s)`);
+            if (videoDevices.length > 1) {
+                console.log('Multiple cameras available - switch button will be enabled');
+            }
         }
     } catch (error) {
         console.error('Error checking camera:', error);
@@ -55,12 +63,12 @@ async function startCamera() {
         feedback.textContent = '📹 Starting camera...';
         startBtn.disabled = true;
         
-        // Request camera with square aspect ratio for better mobile view
+        // Request camera with current facing mode
         const constraints = {
             video: {
                 width: { ideal: 1080, max: 1920 },
                 height: { ideal: 1080, max: 1920 },
-                facingMode: 'user',
+                facingMode: currentFacingMode,
                 frameRate: { ideal: 60, max: 60 },
                 aspectRatio: { ideal: 1 } // Square ratio
             },
@@ -90,14 +98,32 @@ async function startCamera() {
         }
         
         console.log(`Camera started: ${video.videoWidth}x${video.videoHeight}`);
+        console.log(`Facing mode: ${currentFacingMode}`);
         
         startBtn.style.display = 'none';
         stopBtn.style.display = 'inline-block';
         
+        // Always show switch camera button - let user try to switch
+        switchCameraBtn.style.display = 'inline-block';
+        
+        // Re-enumerate cameras now that we have permission
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            availableCameras = videoDevices;
+            console.log(`Available cameras: ${videoDevices.length}`);
+            videoDevices.forEach((device, index) => {
+                console.log(`  Camera ${index + 1}: ${device.label || 'Unknown'}`);
+            });
+        } catch (e) {
+            console.log('Could not enumerate cameras:', e);
+        }
+        
         // Connect WebSocket
         connectWebSocket();
         
-        feedback.textContent = '✓ Camera ready! Position yourself for the exercise.';
+        const cameraType = currentFacingMode === 'user' ? 'front' : 'back';
+        feedback.textContent = `✓ Camera ready (${cameraType})! Position yourself for the exercise.`;
         
     } catch (error) {
         console.error('Error accessing camera:', error);
@@ -109,6 +135,11 @@ async function startCamera() {
             feedback.textContent = '❌ No camera found. Please connect a camera.';
         } else if (error.name === 'NotReadableError') {
             feedback.textContent = '❌ Camera is in use by another application.';
+        } else if (error.name === 'OverconstrainedError') {
+            feedback.textContent = '⚠️ Requested camera not available. Trying default...';
+            // Try with default camera
+            currentFacingMode = 'user';
+            setTimeout(startCamera, 1000);
         } else {
             feedback.textContent = `❌ Camera error: ${error.message}`;
         }
@@ -150,6 +181,7 @@ function stopCamera() {
     startBtn.style.display = 'inline-block';
     startBtn.disabled = false;
     stopBtn.style.display = 'none';
+    switchCameraBtn.style.display = 'none';
     
     // Show placeholder
     const placeholder = document.getElementById('cameraPlaceholder');
@@ -163,6 +195,133 @@ function stopCamera() {
     
     feedback.textContent = 'Camera stopped.';
     console.log('Camera stopped successfully');
+}
+
+async function switchCamera() {
+    if (!stream) {
+        console.log('No active stream to switch');
+        feedback.textContent = '⚠️ Please start camera first';
+        return;
+    }
+    
+    // Toggle facing mode
+    const previousMode = currentFacingMode;
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    
+    console.log(`Switching from ${previousMode} to ${currentFacingMode} camera...`);
+    
+    // Show switching feedback
+    const switchIcon = document.getElementById('switchCameraIcon');
+    const originalIcon = switchIcon.textContent;
+    switchIcon.textContent = '⏳';
+    switchCameraBtn.disabled = true;
+    
+    const cameraType = currentFacingMode === 'user' ? 'front' : 'back';
+    feedback.textContent = `🔄 Switching to ${cameraType} camera...`;
+    
+    const wasTracking = isTracking;
+    
+    // Stop current stream
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    // Close WebSocket temporarily
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+    
+    isTracking = false;
+    
+    try {
+        // Request new camera
+        const constraints = {
+            video: {
+                width: { ideal: 1080, max: 1920 },
+                height: { ideal: 1080, max: 1920 },
+                facingMode: currentFacingMode,
+                frameRate: { ideal: 60, max: 60 },
+                aspectRatio: { ideal: 1 }
+            },
+            audio: false
+        };
+        
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        
+        await new Promise((resolve) => {
+            video.onloadedmetadata = () => {
+                video.play();
+                resolve();
+            };
+        });
+        
+        // Update canvas size
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        console.log(`✓ Switched to ${currentFacingMode} camera: ${video.videoWidth}x${video.videoHeight}`);
+        
+        // Reconnect WebSocket if was tracking
+        if (wasTracking) {
+            connectWebSocket();
+        }
+        
+        feedback.textContent = `✓ Switched to ${cameraType} camera successfully!`;
+        
+        switchIcon.textContent = originalIcon;
+        switchCameraBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Error switching camera:', error);
+        
+        // Revert to previous facing mode
+        currentFacingMode = previousMode;
+        
+        if (error.name === 'NotFoundError' || error.name === 'OverconstrainedError') {
+            feedback.textContent = `⚠️ ${cameraType} camera not available. Using current camera.`;
+        } else {
+            feedback.textContent = '❌ Could not switch camera. Using current camera.';
+        }
+        
+        // Try to restart with original camera
+        try {
+            const constraints = {
+                video: {
+                    width: { ideal: 1080, max: 1920 },
+                    height: { ideal: 1080, max: 1920 },
+                    facingMode: currentFacingMode,
+                    frameRate: { ideal: 60, max: 60 },
+                    aspectRatio: { ideal: 1 }
+                },
+                audio: false
+            };
+            
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            
+            await new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    resolve();
+                };
+            });
+            
+            if (wasTracking) {
+                connectWebSocket();
+            }
+            
+            console.log(`Reverted to ${currentFacingMode} camera`);
+        } catch (restartError) {
+            console.error('Error restarting camera:', restartError);
+            feedback.textContent = '❌ Camera error. Please click Stop and restart.';
+        }
+        
+        switchIcon.textContent = originalIcon;
+        switchCameraBtn.disabled = false;
+    }
 }
 
 function connectWebSocket() {
