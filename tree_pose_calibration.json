@@ -1,0 +1,26 @@
+{
+  "tree_pose": {
+    "raised_leg": {
+      "min_height": 0.02,
+      "ideal_height": -0.07307553291320801,
+      "excellent_height": -0.08038308620452882
+    },
+    "standing_leg": {
+      "min_angle": 145,
+      "ideal_angle": 159.04271276891606,
+      "max_angle": 180
+    },
+    "knee_position": {
+      "inward_ratio": 4.58498572921391,
+      "inward_threshold": 0.8
+    },
+    "arms": {
+      "min_raise": 0.17630898356437685,
+      "ideal_raise": 0.22438165545463562,
+      "above_head": true
+    },
+    "balance": {
+      "max_offset": 0.05
+    }
+  }
+}
